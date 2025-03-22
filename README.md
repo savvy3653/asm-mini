@@ -1,2 +1,2 @@
 # asm-mini
-Mini version of assembly language.
+Mini version of 8-bit assembly language.
