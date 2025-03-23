@@ -5,7 +5,7 @@
 
 #include <memory>
 
-#include "lexer.h"
+#include "lexer.h" test
 
 int8_t get_register_value(const std::string& reg) {
     return registers[reg];
