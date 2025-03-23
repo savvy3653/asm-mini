@@ -3,9 +3,11 @@
 #ifndef UNTITLED_PARSER_H
 #define UNTITLED_PARSER_H
 
+#include <memory>
+
 #include "lexer.h"
 
-int get_register_value(const std::string& reg) {
+int8_t get_register_value(const std::string& reg) {
     return registers[reg];
 }
 
@@ -73,6 +75,54 @@ private:
         flags["AF"] = ((value1 & 0x0F) + (value2 & 0x0F)) > 0x0F;
     }
 
+    void handleValues(int* value1, int* value2, int pos) {
+        // error handling
+        if (!value1 | !value2) {
+            throw std::runtime_error("Null pointer error!");
+        }
+        if (pos + 2 >= vec.size()) {
+            throw std::runtime_error("Invalid operands.");
+        }
+
+        if (vec[pos].first == REGISTERS) {
+            *value1 = get_register_value(vec[pos].second);
+        } else throw std::runtime_error("Unexpected operand.");
+
+        try {
+            const std::string& num_str = vec[pos + 2].second;
+
+            if (vec[pos + 2].first == REGISTERS) {
+                *value2 = get_register_value(num_str);
+            }
+            else if (vec[pos + 2].first == NUMS) {
+                // number parser
+                if (num_str.size() >= 2) {
+                    const std::string prefix = num_str.substr(0, 2);
+                    if (prefix == "0x") {
+                        *value2 = std::stoi(num_str.substr(2), nullptr, 16);
+                    }
+                    else if (prefix == "0b") {
+                        *value2 = std::stoi(num_str.substr(2), nullptr, 2);
+                    }
+                    else {
+                        *value2 = std::stoi(num_str);
+                    }
+                } else {
+                    *value2 = std::stoi(num_str);
+                }
+            }
+            else {
+                throw std::runtime_error("Unexpected second operand type");
+            }
+        }
+        catch (const std::invalid_argument& e) {
+            throw std::runtime_error("Invalid number format: " + vec[pos + 2].second);
+        }
+        catch (const std::out_of_range& e) {
+            throw std::runtime_error("Number out of range: " + vec[pos + 2].second);
+        }
+    }
+
 // --------------------------
 // LOGICAL OPERATIONS HANDLING
 // --------------------------
@@ -105,20 +155,12 @@ private:
         if (vec[pos + 1].first != COMMA) throw std::runtime_error("COMMA missed.");
 
         int value1, value2;
-        if (vec[pos].first == REGISTERS) {
-            value1 = get_register_value(vec[pos].second);
-        } else throw std::runtime_error("Unexpected operand.");
-
-        if (vec[pos + 2].first == REGISTERS) {
-            value2 = get_register_value(vec[pos + 2].second);
-        }
-        else if (vec[pos + 2].first == NUMS) {
-            value2 = std::stoi(vec[pos + 2].second);
-        } else throw std::runtime_error("Unexpected operand.");
+        handleValues(&value1, &value2, pos);
 
         int res = value1 | value2;
         handleFlags(res, value1, value2);
         set_register_value(vec[pos].second, static_cast<int8_t>(res));
+
         return pos + 3;
     }
 
@@ -127,20 +169,12 @@ private:
         if (vec[pos + 1].first != COMMA) throw std::runtime_error("COMMA missed.");
 
         int value1, value2;
-        if (vec[pos].first == REGISTERS) {
-            value1 = get_register_value(vec[pos].second);
-        } else throw std::runtime_error("Unexpected operand.");
-
-        if (vec[pos + 2].first == REGISTERS) {
-            value2 = get_register_value(vec[pos + 2].second);
-        }
-        else if (vec[pos + 2].first == NUMS) {
-            value2 = std::stoi(vec[pos + 2].second);
-        } else throw std::runtime_error("Unexpected operand.");
+        handleValues(&value1, &value2, pos);
 
         int res = value1 & value2;
         handleFlags(res, value1, value2);
         set_register_value(vec[pos].second, static_cast<int8_t>(res));
+
         return pos + 3;
     }
 
@@ -149,20 +183,12 @@ private:
         if (vec[pos + 1].first != COMMA) throw std::runtime_error("COMMA missed.");
 
         int value1, value2;
-        if (vec[pos].first == REGISTERS) {
-            value1 = get_register_value(vec[pos].second);
-        } else throw std::runtime_error("Unexpected operand.");
-
-        if (vec[pos + 2].first == REGISTERS) {
-            value2 = get_register_value(vec[pos + 2].second);
-        }
-        else if (vec[pos + 2].first == NUMS) {
-            value2 = std::stoi(vec[pos + 2].second);
-        } else throw std::runtime_error("Unexpected operand.");
+        handleValues(&value1, &value2, pos);
 
         int res = value1 ^ value2;
         handleFlags(res, value1, value2);
         set_register_value(vec[pos].second, static_cast<int8_t>(res));
+
         return pos + 3;
     }
 
@@ -171,16 +197,7 @@ private:
         if (vec[pos + 1].first != COMMA) throw std::runtime_error("COMMA missed.");
 
         int value1, value2;
-        if (vec[pos].first == REGISTERS) {
-            value1 = get_register_value(vec[pos].second);
-        } else throw std::runtime_error("Unexpected operand.");
-
-        if (vec[pos + 2].first == REGISTERS) {
-            value2 = get_register_value(vec[pos + 2].second);
-        }
-        else if (vec[pos + 2].first == NUMS) {
-            value2 = std::stoi(vec[pos + 2].second);
-        } else throw std::runtime_error("Unexpected operand.");
+        handleValues(&value1, &value2, pos);
 
         bool res = value1 == value2;
         if (res) {
@@ -237,20 +254,12 @@ private:
         if (vec[pos + 1].first != COMMA) throw std::runtime_error("COMMA missed.");
 
         int value1, value2;
-        if (vec[pos].first == REGISTERS) {
-            value1 = get_register_value(vec[pos].second);
-        } else throw std::runtime_error("Unexpected operand.");
-
-        if (vec[pos + 2].first == REGISTERS) {
-            value2 = get_register_value(vec[pos + 2].second);
-        }
-        else if (vec[pos + 2].first == NUMS) {
-            value2 = std::stoi(vec[pos + 2].second);
-        } else throw std::runtime_error("Unexpected operand.");
+        handleValues(&value1, &value2, pos);
 
         int res = value1 * value2;
         handleFlags(res, value1, value2);
         set_register_value(vec[pos].second, static_cast<int8_t>(res));
+
         return pos + 3;
     }
 
@@ -259,18 +268,7 @@ private:
         if (vec[pos + 1].first != COMMA) throw std::runtime_error("COMMA missed.");
 
         int value1, value2;
-        if (vec[pos].first == REGISTERS) {
-            value1 = get_register_value(vec[pos].second);
-        } else throw std::runtime_error("Unexpected operand.");
-
-        if (vec[pos + 2].first == REGISTERS) {
-            value2 = get_register_value(vec[pos + 2].second);
-        }
-        else if (vec[pos + 2].first == NUMS) {
-            value2 = std::stoi(vec[pos + 2].second);
-        } else throw std::runtime_error("Unexpected operand.");
-
-        if (value2 == 0) throw std::runtime_error("Division by zero.");
+        handleValues(&value1, &value2, pos);
 
         int res = value1 / value2;
         handleFlags(res, value1, value2);
@@ -284,16 +282,7 @@ private:
         if (vec[pos + 1].first != COMMA) throw std::runtime_error("COMMA missed.");
 
         int value1, value2;
-        if (vec[pos].first == REGISTERS) {
-            value1 = get_register_value(vec[pos].second);
-        } else throw std::runtime_error("Unexpected operand.");
-
-        if (vec[pos + 2].first == REGISTERS) {
-            value2 = get_register_value(vec[pos + 2].second);
-        }
-        else if (vec[pos + 2].first == NUMS) {
-            value2 = std::stoi(vec[pos + 2].second);
-        } else throw std::runtime_error("Unexpected operand.");
+        handleValues(&value1, &value2, pos);
 
         int res = value1 + value2;
         handleFlags(res, value1, value2);
@@ -307,16 +296,7 @@ private:
         if (vec[pos + 1].first != COMMA) throw std::runtime_error("COMMA missed.");
 
         int value1, value2;
-        if (vec[pos].first == REGISTERS) {
-            value1 = get_register_value(vec[pos].second);
-        } else throw std::runtime_error("Unexpected operand.");
-
-        if (vec[pos + 2].first == REGISTERS) {
-            value2 = get_register_value(vec[pos + 2].second);
-        }
-        else if (vec[pos + 2].first == NUMS) {
-            value2 = std::stoi(vec[pos + 2].second);
-        } else throw std::runtime_error("Unexpected operand.");
+        handleValues(&value1, &value2, pos);
 
         int res = value1 - value2;
         handleFlags(res, value1, value2);
@@ -353,7 +333,26 @@ private:
 
         std::string dest_register = vec[pos].second;
         if (vec[pos + 2].first == NUMS) {
-            auto value = static_cast<int8_t>(std::stoi(vec[pos + 2].second));
+            int8_t value;
+
+            // checking for hex-numbers
+            if (vec[pos + 2].second[0] == '0' && vec[pos + 2].second[1] == 'x') {
+                value = static_cast<int8_t>(std::stoi(vec[pos + 2].second, nullptr, 16));
+            }
+            // checking for binary numbers
+            else if (vec[pos + 2].second[0] == '0' && vec[pos + 2].second[1] == 'b') {
+                std::string num = "";
+                std::string initial = vec[pos + 2].second;
+                for (int i = 2; i < initial.size(); i++) {
+                    num += initial[i];
+                }
+                value = (std::stoi(num, nullptr, 2));
+            }
+            // simple number
+            else {
+                value = static_cast<int8_t>(std::stoi(vec[pos + 2].second));
+            }
+
             set_register_value(dest_register, value);
         }
         else if (vec[pos + 2].first == REGISTERS) {
