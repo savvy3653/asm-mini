@@ -35,6 +35,9 @@ std::vector<std::pair<TOKENS, std::string>> lexer(std::string& line) {
             {
                 vec.push_back({REGISTERS, buff});
             }
+            else if (buff == ";") {
+                break;
+            }
             else if (buff ==  "mov" || buff == "push" || buff == "pop") {
                 vec.push_back({COMMANDS, buff});
             }
@@ -49,9 +52,23 @@ std::vector<std::pair<TOKENS, std::string>> lexer(std::string& line) {
             }
             else throw std::runtime_error("Unexpected word: " + buff);
         }
-        else if (isalnum(line[pos])) {
+        else if (isalnum(line[pos]) || (line[pos] == '-' && isalnum(line[pos + 1]))) {
             std::string number;
-            while (isalnum(line[pos])) {
+            if (line[pos] == '-') {
+                number += "-";
+                ++pos;
+            }
+            while (isalnum(line[pos]) || line[pos] == 'x' || line[pos] == 'b') {
+                if (line[pos] == 'x') {
+                    number += "x";
+                    ++pos;
+                    continue;
+                }
+                if (line[pos] == 'b') {
+                    number += "b";
+                    ++pos;
+                    continue;
+                }
                 number += line[pos];
                 ++pos;
             }
